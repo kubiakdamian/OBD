@@ -30,7 +30,7 @@ OBJECT id PRIMARY KEY;
 create or replace TYPE T_PLAYER AS OBJECT 
 ( 
     id number(10),
-    team REF t_team,
+    team REF t_team SCOPE IS teams,
     firstName varchar2(30),
     lastName varchar2(30),
     birthDate date,

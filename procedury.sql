@@ -22,7 +22,6 @@ END team_utils;
 CREATE OR REPLACE PACKAGE team_utils AS
     
     PROCEDURE add_team(newTeamName IN VARCHAR2, establishmentYear IN NUMBER);
-    PROCEDURE add_player(
     
 END team_utils;
 
@@ -65,6 +64,8 @@ CREATE OR REPLACE PACKAGE player_utils AS
     
     PROCEDURE add_player(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE);
     PROCEDURE print_players;
+    PROCEDURE add_team(playerId number, teamId number);
+    PROCEDURE add_match_data(playerId number, scoredGoals number, minutesPlayed number, assistsNumber number, yellowCardsReceived number, redCardsReceived number);
     
 END player_utils;
 
@@ -73,6 +74,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     WRONG_DATA EXCEPTION;
     PLAYER_ALREADY_EXSISTS EXCEPTION;
     
+    --- DODAWANIE NOWEGO ZAWODNIKA ---
     PROCEDURE add_player(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE) AS
         counter INTEGER;      
         BEGIN
@@ -83,6 +85,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
                     (
                         PLAYERS_SEQUENCE.nextval, null, playerFirstName, playerLastName, playerBirthDate, 0, 0, 0, 0, 0
                     );
+                    DBMS_OUTPUT.PUT_LINE('Dodano nowego gracza');
                 ELSE
                     RAISE PLAYER_ALREADY_EXSISTS;
                 END IF;
@@ -90,10 +93,11 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
                 RAISE WRONG_DATA;
             END IF;
             EXCEPTION
-            WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
-            WHEN PLAYER_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Gracz o podanych danych ju¿ istnieje' || playerFirstName || ' ' || playerLastName || ' ' || playerBirthDate);    
+                WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+                WHEN PLAYER_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Gracz o podanych danych ju¿ istnieje' || playerFirstName || ' ' || playerLastName || ' ' || playerBirthDate);    
     END add_player;
     
+    --- WYPISYWANIE ZADOWNIKÓW ---
     PROCEDURE print_players AS
         BEGIN
         FOR cursor1 IN (SELECT * FROM players) 
@@ -101,5 +105,39 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
             DBMS_OUTPUT.PUT_LINE('Imie = ' || cursor1.firstName || ', Nazwisko = ' || cursor1.lastName);
           END LOOP;
     END print_players;
+    
+    --- DODAWANIE DRU¯YNY DO GRACZA ---
+    PROCEDURE add_team(playerId number, teamId number) AS
+        teamRef REF t_team;
+        
+        BEGIN
+            IF playerId IS NOT NULL AND teamId IS NOT NULL THEN
+                SELECT REF(t) INTO teamRef FROM teams t WHERE t.id LIKE teamId;
+                UPDATE players p SET p.team = teamRef WHERE p.id = playerId;
+                DBMS_OUTPUT.PUT_LINE('Przypisano dru¿ynê do gracza');
+            ELSE
+                RAISE WRONG_DATA;
+            END IF;
+            EXCEPTION
+                WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+    END add_team;
+    
+    --- DODAWANIE BRAMEK DO GRACZA
+    PROCEDURE add_match_data(playerId number, scoredGoals number, minutesPlayed number, assistsNumber number, yellowCardsReceived number, redCardsReceived number) AS    
+    BEGIN
+        IF playerId IS NOT NULL AND scoredGoals IS NOT NULL AND minutesPlayed IS NOT NULL AND assistsNumber IS NOT NULL AND yellowCardsReceived IS NOT NULL AND redCardsReceived IS NOT NULL THEN
+            UPDATE players p SET
+                p.goals = p.goals + scoredGoals,
+                p.minutesTotal = p.minutesTotal + minutesPlayed,
+                p.assists = p.assists + assistsNumber,
+                p.yellowCards = p.yellowCards + yellowCardsReceived,
+                p.redCards = p.redCards + redCardsReceived WHERE p.id = playerId;
+            DBMS_OUTPUT.PUT_LINE('Dodano dane dotyczace meczu do gracza');
+        ELSE
+            RAISE WRONG_DATA;
+        END IF;
+        EXCEPTION
+            WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+    END add_match_data;
     
 END player_utils;
