@@ -326,6 +326,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
         counter INTEGER;
         k_goals_history k_player_goals_history;
     BEGIN
+    IF playerId IS NOT NULL THEN
         SELECT COUNT(*) INTO counter FROM players p WHERE p.id = playerId;
             IF counter > 0 THEN
                 SELECT p.goals_history INTO k_goals_history FROM players p WHERE p.id = playerId;
@@ -336,8 +337,12 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
             ELSE
                 RAISE PLAYER_NOT_FOUND;
             END IF;
+    ELSE
+        RAISE WRONG_DATA;
+    END IF;
             EXCEPTION
-                WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+                WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany gracz nie istnieje');
+                WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
     END print_player_goals_history;
         
 END player_utils;
