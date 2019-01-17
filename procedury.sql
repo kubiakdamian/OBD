@@ -2,6 +2,7 @@
 CREATE OR REPLACE PACKAGE league_utils AS
     
     PROCEDURE update_league_data(teamId IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER);
+    PROCEDURE update_league_data_from_match(matchId IN NUMBER, winnerId NUMBER);
     
 end league_utils;
 
@@ -10,6 +11,7 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
 
     WRONG_DATA EXCEPTION;
     TEAM_NOT_FOUND EXCEPTION;
+    MATCH_NOT_FOUND EXCEPTION;
     TEAM_PLAYED_ALL_MATCHES EXCEPTION;
     
     --- Aktualizowanie danych tabeli ligowej ---
@@ -49,6 +51,49 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
                     WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
                     WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona dru¿yna nie istnieje');
             END update_league_data;
+            
+        PROCEDURE update_league_data_from_match(matchId IN NUMBER, winnerId NUMBER) AS
+                nMatch t_match;
+                hostT t_team;
+                visitorT t_team;
+                matchCounter INTEGER;
+                winnerGoalsN NUMBER;
+                losserGoalsN NUMBER;
+                
+            BEGIN
+                SELECT COUNT(*) INTO matchCounter FROM matches m WHERE m.id = matchId;
+                IF matchCounter = 1 THEN
+                    FOR cursor1 IN (SELECT * FROM matches) 
+                        LOOP
+                            IF cursor1.ID = matchId THEN   
+                                SELECT DEREF(cursor1.matchHost) INTO hostT from matches m WHERE m.id = cursor1.ID;
+                                SELECT DEREF(cursor1.visitor) INTO visitorT from matches m WHERE m.id = cursor1.ID;
+                                winnerGoalsN := cursor1.winnerGoals;
+                                losserGoalsN := cursor1.loserGoals;
+                            END IF;
+                        END LOOP;
+                    
+                    IF winnerId IS null THEN
+                        update_league_data(hostT.id, winnerGoalsN, losserGoalsN, 0, 1, 0);
+                        update_league_data(visitorT.id, losserGoalsN, winnerGoalsN, 0, 1, 0);
+                        DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabelê ligowa');
+                    ELSE
+                        IF winnerId = hostT.id THEN
+                            update_league_data(hostT.id, winnerGoalsN, losserGoalsN, 1, 0, 0);
+                            update_league_data(visitorT.id, losserGoalsN, winnerGoalsN, 0, 0, 1);
+                            DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabelê ligowa');
+                        ELSE
+                            update_league_data(visitorT.id, winnerGoalsN, losserGoalsN, 1, 0, 0);
+                            update_league_data(hostT.id, losserGoalsN, winnerGoalsN, 0, 0, 1);
+                            DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabelê ligowa');
+                        END IF;               
+                    END IF;
+                ELSE
+                    RAISE MATCH_NOT_FOUND;
+                END IF;
+                EXCEPTION
+                    WHEN MATCH_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona dru¿yna nie istnieje');
+        END update_league_data_from_match;
 
 END league_utils;
 
@@ -308,6 +353,7 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
     matchCounter INTEGER;
     teamCounter INTEGER;
     winnerTeamRef REF t_team;
+    nMatch t_match;
     
     BEGIN
         IF matchId IS NOT NULL AND winnerId IS NOT NULL AND newWinnerGoals IS NOT NULL AND newLosserGoals IS NOT NULL THEN
@@ -320,6 +366,9 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
                         m.winner = winnerTeamRef,
                         m.winnerGoals = newWinnerGoals,
                         m.loserGoals = newLosserGoals WHERE m.id = matchId;
+                    
+                    --- Updating league table
+                    league_utils.update_league_data_from_match(matchId, winnerId);
                 ELSE
                     RAISE TEAM_NOT_FOUND;
                 END IF;
