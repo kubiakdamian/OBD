@@ -20,6 +20,7 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
         tableId INTEGER;
         
             BEGIN
+                teamFound := 0;
                 IF teamId IS NOT NULL AND newScoredGoals IS NOT NULL AND newLostGoals IS NOT NULL AND newWins IS NOT NULL AND newDraws IS NOT NULL AND newLosses IS NOT NULL THEN
                     FOR cursor1 IN (SELECT * FROM league_table)
                         LOOP
@@ -264,6 +265,8 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
     
     PROCEDURE add_match(hostId IN NUMBER, guestId IN NUMBER, matchDate IN DATE) AS
     BEGIN
+        hostFound := 0;
+        guestFound := 0;
         IF hostId IS NOT NULL AND guestId IS NOT NULL AND matchDate IS NOT NULL THEN
             FOR cursor1 IN (SELECT * FROM teams)
                 LOOP
