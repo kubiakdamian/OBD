@@ -1,14 +1,28 @@
 ---- TYPY -----
 
--- Typ opisujacy lige
-create or replace TYPE T_LEAGUE AS OBJECT 
+-- Typ opisujacy tabelê ligowa
+create or replace TYPE t_league AS OBJECT 
 (
     id number(10),
-    leagueName varchar2(25)
+    team REF t_team,
+    points number,
+    scoredGoals number,
+    lostGoals number,
+    wins number,
+    draws number,
+    losses number
 )
+--- Tabela ligowa
+create table league_table of t_league
+(
+    id PRIMARY KEY,
+    team WITH ROWID,
+    SCOPE FOR (team) IS teams
+)
+OBJECT id PRIMARY KEY;
 
 -- Typ opisujacy mecz
-create or replace TYPE T_MATCH AS OBJECT 
+create or replace TYPE t_match AS OBJECT 
 (
     id number(10),
     host REF t_team,
@@ -27,7 +41,7 @@ create table matches of t_match
 OBJECT id PRIMARY KEY;
 
 -- Typ opisujacy zawodnika
-create or replace TYPE T_PLAYER AS OBJECT 
+create or replace TYPE t_player AS OBJECT 
 ( 
     id number(10),
     team REF t_team,
@@ -51,7 +65,7 @@ OBJECT id PRIMARY KEY;
 
 
 --Typ opisujacy druzyne
-create or replace TYPE T_TEAM AS OBJECT 
+create or replace TYPE t_team AS OBJECT 
 (
     id number,
     teamName varchar2(30),

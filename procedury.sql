@@ -1,17 +1,52 @@
 --- LEAGUE UTILS---
 CREATE OR REPLACE PACKAGE league_utils AS
     
-    PROCEDURE create_league(leagueName IN VARCHAR2);
+    PROCEDURE update_league_data(teamId IN NUMBER, newPoints IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER);
     
 end league_utils;
 
+--- LEAGUE UTILS BODY ---
 CREATE OR REPLACE PACKAGE BODY league_utils AS
 
     WRONG_DATA EXCEPTION;
+    TEAM_NOT_FOUND EXCEPTION;
+    TEAM_PLAYED_ALL_MATCHES EXCEPTION;
     
-    PROCEDURE create_league(leagueName IN VARCHAR2) AS
-        BEGIN
-            
+    PROCEDURE update_league_data(teamId IN NUMBER, newPoints IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER) AS
+        counter INTEGER;
+        team t_team;
+        teamFound INTEGER;
+        tableId INTEGER;
+        
+            BEGIN
+                IF teamId IS NOT NULL AND newPoints IS NOT NULL AND newScoredGoals IS NOT NULL AND newLostGoals IS NOT NULL AND newWins IS NOT NULL AND newDraws IS NOT NULL AND newLosses IS NOT NULL THEN
+                    FOR cursor1 IN (SELECT * FROM league_table)
+                        LOOP
+                            SELECT DEREF(cursor1.team) INTO team from league_table t WHERE t.id = cursor1.id;
+                            IF team.id = teamId THEN
+                                teamFound := 1;
+                                tableId := cursor1.id;
+                            END IF;
+                        END LOOP;
+                        IF teamFound = 1 THEN
+                            UPDATE league_table t SET
+                                t.points = t.points + newPoints,
+                                t.scoredGoals = t.scoredGoals + newScoredGoals,
+                                t.lostGoals = t.lostGoals + newLostGoals,
+                                t.wins = t.wins + newWins,
+                                t.draws = t.draws + newDraws,
+                                t.losses = t.losses + newLosses WHERE t.id = tableId;
+                                DBMS_OUTPUT.PUT_LINE('Zaktualizowano dane meczowe');
+                        ELSE
+                            RAISE TEAM_NOT_FOUND;
+                        END IF;
+                ELSE
+                    RAISE WRONG_DATA;
+                END IF;
+                EXCEPTION
+                    WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+                    WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona dru¿yna nie istnieje');
+            END update_league_data;
 
 END league_utils;
 
@@ -33,17 +68,26 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
     
     PROCEDURE add_team(newTeamName IN VARCHAR2, establishmentYear IN NUMBER) AS
         counter INTEGER;
+        teamId INTEGER;
+        newTeam REF t_team;
         
         BEGIN        
             IF newTeamName IS NOT NULL AND establishmentYear IS NOT NULL THEN
                 SELECT COUNT(*) INTO counter FROM teams t WHERE t.teamName = newTeamName;
                 
                 IF counter = 0 THEN
+                    teamId := TEAMS_SEQUENCE.nextval;
                     INSERT INTO teams values
                     (
-                        TEAMS_SEQUENCE.nextval, newTeamName, establishmentYear, 0, 0, 0, 0
+                        teamId, newTeamName, establishmentYear, 0, 0, 0, 0
                     );
                     DBMS_OUTPUT.PUT_LINE('Dodano nowa dru¿ynê');
+                    -- Dodawanie nowo dodanej dru¿yny do tabeli
+                    SELECT REF(t) INTO newTeam FROM teams t WHERE t.id LIKE teamId;
+                    INSERT INTO league_table values
+                    (
+                        LEAGUE_TABLE_SEQUENCE.nextval, newTeam, 0, 0, 0, 0, 0, 0
+                    );                
                 ELSE
                     RAISE TEAM_ALREADY_EXSISTS;
                 END IF;
