@@ -248,6 +248,7 @@ END player_utils;
 CREATE OR REPLACE PACKAGE match_utils AS
     
     PROCEDURE add_match(hostId IN NUMBER, guestId IN NUMBER, matchDate IN DATE);
+    PROCEDURE add_match_result(matchId IN NUMBER, winnerId IN NUMBER, newWinnerGoals IN NUMBER, newLosserGoals IN NUMBER);
     
 END match_utils;
 
@@ -257,6 +258,7 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
     WRONG_DATA EXCEPTION;
     TEAM_NOT_FOUND EXCEPTION;
     MATCH_ALREADY_EXISTS EXCEPTION;
+    MATCH_NOT_FOUND EXCEPTION;
     counter INTEGER;
     hostRef REF t_team;
     guestRef REF t_team;
@@ -301,5 +303,36 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
             WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Jedna badü obie druøyny nie istnieja');
             WHEN MATCH_ALREADY_EXISTS THEN DBMS_OUTPUT.PUT_LINE('Taki mecz juø istnieje');
     END add_match;
+    
+    PROCEDURE add_match_result(matchId IN NUMBER, winnerId IN NUMBER, newWinnerGoals IN NUMBER, newLosserGoals IN NUMBER) AS
+    matchCounter INTEGER;
+    teamCounter INTEGER;
+    winnerTeamRef REF t_team;
+    
+    BEGIN
+        IF matchId IS NOT NULL AND winnerId IS NOT NULL AND newWinnerGoals IS NOT NULL AND newLosserGoals IS NOT NULL THEN
+            SELECT COUNT(*) INTO matchCounter FROM matches m WHERE m.id = matchId;
+            IF matchCounter = 1 THEN
+                SELECT COUNT(*) INTO teamCounter FROM teams t WHERE t.id = winnerId;
+                IF teamCounter = 1 THEN
+                    SELECT REF(t) INTO winnerTeamRef FROM teams t WHERE t.id LIKE winnerId;
+                    UPDATE matches m SET
+                        m.winner = winnerTeamRef,
+                        m.winnerGoals = newWinnerGoals,
+                        m.loserGoals = newLosserGoals WHERE m.id = matchId;
+                ELSE
+                    RAISE TEAM_NOT_FOUND;
+                END IF;
+            ELSE
+                RAISE MATCH_NOT_FOUND;
+            END IF;
+        ELSE
+            RAISE WRONG_DATA;
+        END IF;
+        EXCEPTION
+            WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+            WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druøyna nie istnieje');
+            WHEN MATCH_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany mecz nie istnieje');
+    END add_match_result;
     
 END match_utils;

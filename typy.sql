@@ -39,7 +39,9 @@ create table matches of t_match
     matchHost WITH ROWID,
     SCOPE FOR (matchHost) IS teams,
     visitor WITH ROWID,
-    SCOPE FOR (visitor) IS teams
+    SCOPE FOR (visitor) IS teams,
+    winner WITH ROWID,
+    SCOPE FOR (winner) IS teams
 )
 OBJECT id PRIMARY KEY;
 
