@@ -205,7 +205,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
                 IF counter = 0 THEN
                     INSERT INTO players values
                     (
-                        PLAYERS_SEQUENCE.nextval, null, playerFirstName, playerLastName, playerBirthDate, 0, 0, 0, 0, 0
+                        PLAYERS_SEQUENCE.nextval, null, playerFirstName, playerLastName, playerBirthDate, 0, 0, 0, 0, 0, null
                     );
                     DBMS_OUTPUT.PUT_LINE('Dodano nowego gracza');
                 ELSE
