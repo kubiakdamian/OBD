@@ -43,7 +43,9 @@ create or replace TYPE T_PLAYER AS OBJECT
 --- Tabela zawodników
 create table players of t_player
 (
-    id PRIMARY KEY
+    id PRIMARY KEY,
+    team WITH ROWID,
+    SCOPE FOR (team) IS teams
 )
 OBJECT id PRIMARY KEY;
 

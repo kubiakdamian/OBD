@@ -99,10 +99,12 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     
     --- WYPISYWANIE ZADOWNIKÓW ---
     PROCEDURE print_players AS
+        team t_team;
         BEGIN
         FOR cursor1 IN (SELECT * FROM players) 
           LOOP
-            DBMS_OUTPUT.PUT_LINE('Imie = ' || cursor1.firstName || ', Nazwisko = ' || cursor1.lastName);
+            SELECT DEREF(cursor1.team) INTO team from players p WHERE p.id = cursor1.id;
+            DBMS_OUTPUT.PUT_LINE('Imie = ' || cursor1.firstName || ', Nazwisko = ' || cursor1.lastName || ', Nazwa dru¿yny = ' || team.teamName);
           END LOOP;
     END print_players;
     
