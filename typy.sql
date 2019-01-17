@@ -25,18 +25,21 @@ OBJECT id PRIMARY KEY;
 create or replace TYPE t_match AS OBJECT 
 (
     id number(10),
-    host REF t_team,
+    matchHost REF t_team,
     visitor REF t_team,
     matchDay date,
     winner REF t_team,
-    loser REF t_team,
     winnerGoals number,
     loserGoals number
 )
 --- Tabela meczów
 create table matches of t_match
 (
-    id PRIMARY KEY
+    id PRIMARY KEY,
+    matchHost WITH ROWID,
+    SCOPE FOR (matchHost) IS teams,
+    visitor WITH ROWID,
+    SCOPE FOR (visitor) IS teams
 )
 OBJECT id PRIMARY KEY;
 

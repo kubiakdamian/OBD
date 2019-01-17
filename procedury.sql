@@ -1,25 +1,26 @@
---- LEAGUE UTILS---
+--- LEAGUE UTILS------------------------------------------------------------------------
 CREATE OR REPLACE PACKAGE league_utils AS
     
-    PROCEDURE update_league_data(teamId IN NUMBER, newPoints IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER);
+    PROCEDURE update_league_data(teamId IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER);
     
 end league_utils;
 
---- LEAGUE UTILS BODY ---
+--- LEAGUE UTILS BODY ------------------------------------------------------------------
 CREATE OR REPLACE PACKAGE BODY league_utils AS
 
     WRONG_DATA EXCEPTION;
     TEAM_NOT_FOUND EXCEPTION;
     TEAM_PLAYED_ALL_MATCHES EXCEPTION;
     
-    PROCEDURE update_league_data(teamId IN NUMBER, newPoints IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER) AS
+    --- Aktualizowanie danych tabeli ligowej ---
+    PROCEDURE update_league_data(teamId IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER) AS
         counter INTEGER;
         team t_team;
         teamFound INTEGER;
         tableId INTEGER;
         
             BEGIN
-                IF teamId IS NOT NULL AND newPoints IS NOT NULL AND newScoredGoals IS NOT NULL AND newLostGoals IS NOT NULL AND newWins IS NOT NULL AND newDraws IS NOT NULL AND newLosses IS NOT NULL THEN
+                IF teamId IS NOT NULL AND newScoredGoals IS NOT NULL AND newLostGoals IS NOT NULL AND newWins IS NOT NULL AND newDraws IS NOT NULL AND newLosses IS NOT NULL THEN
                     FOR cursor1 IN (SELECT * FROM league_table)
                         LOOP
                             SELECT DEREF(cursor1.team) INTO team from league_table t WHERE t.id = cursor1.id;
@@ -30,7 +31,7 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
                         END LOOP;
                         IF teamFound = 1 THEN
                             UPDATE league_table t SET
-                                t.points = t.points + newPoints,
+                                t.points = newWins * 3 + newDraws,
                                 t.scoredGoals = t.scoredGoals + newScoredGoals,
                                 t.lostGoals = t.lostGoals + newLostGoals,
                                 t.wins = t.wins + newWins,
@@ -51,7 +52,7 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
 END league_utils;
 
 
---- TEAM UTILS ---
+--- TEAM UTILS --------------------------------------------------------------------------
 CREATE OR REPLACE PACKAGE team_utils AS
     
     PROCEDURE add_team(newTeamName IN VARCHAR2, establishmentYear IN NUMBER);
@@ -59,17 +60,18 @@ CREATE OR REPLACE PACKAGE team_utils AS
     
 END team_utils;
 
---- TEAM UTILS BODY ---
+--- TEAM UTILS BODY ---------------------------------------------------------------------
 CREATE OR REPLACE PACKAGE BODY team_utils AS
     
     WRONG_DATA EXCEPTION;
     TEAM_ALREADY_EXSISTS EXCEPTION;
     TEAM_NOT_FOUND EXCEPTION;
     
+    --- DODAWANIE NOWEJ DRUØYNY ---
     PROCEDURE add_team(newTeamName IN VARCHAR2, establishmentYear IN NUMBER) AS
         counter INTEGER;
         teamId INTEGER;
-        newTeam REF t_team;
+        newTeamRef REF t_team;
         
         BEGIN        
             IF newTeamName IS NOT NULL AND establishmentYear IS NOT NULL THEN
@@ -100,6 +102,7 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
             
     END add_team;
     
+    --- WYPISYWANIE WSZYSTKICH ZAWODNIK”W DRUØYNY ---
     PROCEDURE print_team_players(teamId IN NUMBER) AS
         team t_team;
         counter INTEGER;
@@ -129,7 +132,7 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
 end team_utils;
 
 
---- PLAYER UTILS ---
+--- PLAYER UTILS -----------------------------------------------------------------------------
 CREATE OR REPLACE PACKAGE player_utils AS
     
     PROCEDURE add_player(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE);
@@ -139,6 +142,7 @@ CREATE OR REPLACE PACKAGE player_utils AS
     
 END player_utils;
 
+--- PLAYER UTILS BODY ------------------------------------------------------------------------
 CREATE OR REPLACE PACKAGE BODY player_utils AS
     
     WRONG_DATA EXCEPTION;
@@ -169,7 +173,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
                 WHEN PLAYER_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Gracz o podanych danych juø istnieje' || playerFirstName || ' ' || playerLastName || ' ' || playerBirthDate);    
     END add_player;
     
-    --- WYPISYWANIE ZADOWNIK”W ---
+    --- WYPISYWANIE WSZYSTKICH ZADOWNIK”W ---
     PROCEDURE print_players AS
         team t_team;
         BEGIN
@@ -237,3 +241,62 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     END add_match_data;
     
 END player_utils;
+
+
+--- MATCH UTILS -----------------------------------------------------------------------------------------
+CREATE OR REPLACE PACKAGE match_utils AS
+    
+    PROCEDURE add_match(hostId IN NUMBER, guestId IN NUMBER, matchDate IN DATE);
+    
+END match_utils;
+
+--- MATCH UTILS BODY ------------------------------------------------------------------------------------
+CREATE OR REPLACE PACKAGE BODY match_utils AS
+
+    WRONG_DATA EXCEPTION;
+    TEAM_NOT_FOUND EXCEPTION;
+    MATCH_ALREADY_EXISTS EXCEPTION;
+    counter INTEGER;
+    hostRef REF t_team;
+    guestRef REF t_team;
+    hostFound INTEGER;
+    guestFound INTEGER;
+    
+    PROCEDURE add_match(hostId IN NUMBER, guestId IN NUMBER, matchDate IN DATE) AS
+    BEGIN
+        IF hostId IS NOT NULL AND guestId IS NOT NULL AND matchDate IS NOT NULL THEN
+            FOR cursor1 IN (SELECT * FROM teams)
+                LOOP
+                    IF cursor1.id = hostId THEN
+                        hostFound := 1;
+                    ELSIF cursor1.id = guestId THEN
+                        guestFound := 1;
+                    END IF;
+                END LOOP;
+            IF hostFound = 1 AND guestFound = 1 THEN
+                SELECT REF(t) INTO hostRef FROM teams t WHERE t.id LIKE hostId;
+                SELECT REF(t) INTO guestRef FROM teams t WHERE t.id LIKE guestId;
+                
+                SELECT COUNT(*) INTO counter FROM matches m WHERE m.matchHost = hostRef AND m.visitor = guestRef AND m.matchDay = matchDate;
+                IF counter = 0 THEN            
+                    INSERT INTO matches VALUES
+                    (
+                        MATCHES_SEQUENCE.nextval, hostRef, guestRef, matchDate, null, null, null
+                    );
+                    DBMS_OUTPUT.PUT_LINE('Dodano nowy mecz');
+                ELSE
+                    RAISE MATCH_ALREADY_EXISTS;
+                END IF;
+            ELSE
+                RAISE TEAM_NOT_FOUND;
+            END IF;
+        ELSE
+            RAISE WRONG_DATA;
+        END IF;
+        EXCEPTION
+            WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+            WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Jedna badü obie druøyny nie istnieja');
+            WHEN MATCH_ALREADY_EXISTS THEN DBMS_OUTPUT.PUT_LINE('Taki mecz juø istnieje');
+    END add_match;
+    
+END match_utils;
