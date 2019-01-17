@@ -45,6 +45,17 @@ create table matches of t_match
 )
 OBJECT id PRIMARY KEY;
 
+--- Typ opisujacy historiê bramek zdobytych przez zawodnika
+CREATE OR REPLACE TYPE t_player_goals_history AS OBJECT
+(
+    id NUMBER(10),
+    goals NUMBER,
+    sezon DATE
+)
+
+--- tablica zagni¿d¿ona historii bramek zdobytych w poszczególnych sezonach przez zawodnika
+CREATE TYPE k_player_goals_history AS TABLE OF t_player_goals_history;
+
 -- Typ opisujacy zawodnika
 create or replace TYPE t_player AS OBJECT 
 ( 
@@ -57,8 +68,10 @@ create or replace TYPE t_player AS OBJECT
     minutesTotal number,
     assists number,
     yellowCards number,
-    redCards number
+    redCards number,
+    goals_history k_player_goals_history
 )
+
 --- Tabela zawodników
 create table players of t_player
 (
@@ -66,7 +79,9 @@ create table players of t_player
     team WITH ROWID,
     SCOPE FOR (team) IS teams
 )
-OBJECT id PRIMARY KEY;
+OBJECT id PRIMARY KEY
+NESTED TABLE goals_history
+STORE AS player_goals_history;
 
 
 --Typ opisujacy druzyne
