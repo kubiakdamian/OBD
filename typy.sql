@@ -1,6 +1,6 @@
 ---- TYPY -----
 
--- Typ opisujacy tabelê ligowa
+-- Typ opisujacy tabele ligowa
 create or replace TYPE t_league AS OBJECT 
 (
     id number(10),
@@ -45,7 +45,7 @@ create table matches of t_match
 )
 OBJECT id PRIMARY KEY;
 
---- Typ opisujacy historiê bramek zdobytych przez zawodnika
+--- Typ opisujacy historie bramek zdobytych przez zawodnika
 CREATE OR REPLACE TYPE t_player_goals_history AS OBJECT
 (
     id NUMBER(10),

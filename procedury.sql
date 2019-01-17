@@ -49,7 +49,7 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
                 END IF;
                 EXCEPTION
                     WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
-                    WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona druøyna nie istnieje');
+                    WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona druzyna nie istnieje');
             END update_league_data;
             
         PROCEDURE update_league_data_from_match(matchId IN NUMBER, winnerId NUMBER) AS
@@ -76,23 +76,23 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
                     IF winnerId IS null THEN
                         update_league_data(hostT.id, winnerGoalsN, losserGoalsN, 0, 1, 0);
                         update_league_data(visitorT.id, losserGoalsN, winnerGoalsN, 0, 1, 0);
-                        DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabelÍ ligowa');
+                        DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabele ligowa');
                     ELSE
                         IF winnerId = hostT.id THEN
                             update_league_data(hostT.id, winnerGoalsN, losserGoalsN, 1, 0, 0);
                             update_league_data(visitorT.id, losserGoalsN, winnerGoalsN, 0, 0, 1);
-                            DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabelÍ ligowa');
+                            DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabele ligowa');
                         ELSE
                             update_league_data(visitorT.id, winnerGoalsN, losserGoalsN, 1, 0, 0);
                             update_league_data(hostT.id, losserGoalsN, winnerGoalsN, 0, 0, 1);
-                            DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabelÍ ligowa');
+                            DBMS_OUTPUT.PUT_LINE('Zaktualizowano tabele ligowa');
                         END IF;               
                     END IF;
                 ELSE
                     RAISE MATCH_NOT_FOUND;
                 END IF;
                 EXCEPTION
-                    WHEN MATCH_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona druøyna nie istnieje');
+                    WHEN MATCH_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona druzyna nie istnieje');
         END update_league_data_from_match;
 
 END league_utils;
@@ -113,7 +113,7 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
     TEAM_ALREADY_EXSISTS EXCEPTION;
     TEAM_NOT_FOUND EXCEPTION;
     
-    --- DODAWANIE NOWEJ DRUØYNY ---
+    --- DODAWANIE NOWEJ DRUZYNY ---
     PROCEDURE add_team(newTeamName IN VARCHAR2, establishmentYear IN NUMBER) AS
         counter INTEGER;
         teamId INTEGER;
@@ -129,12 +129,12 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
                     (
                         teamId, newTeamName, establishmentYear, 0, 0, 0, 0
                     );
-                    DBMS_OUTPUT.PUT_LINE('Dodano nowa druøynÍ');
-                    -- Dodawanie nowo dodanej druøyny do tabeli
-                    SELECT REF(t) INTO newTeam FROM teams t WHERE t.id LIKE teamId;
+                    DBMS_OUTPUT.PUT_LINE('Dodano nowa druzyne');
+                    -- Dodawanie nowo dodanej druzyny do tabeli
+                    SELECT REF(t) INTO newTeamRef FROM teams t WHERE t.id LIKE teamId;
                     INSERT INTO league_table values
                     (
-                        LEAGUE_TABLE_SEQUENCE.nextval, newTeam, 0, 0, 0, 0, 0, 0
+                        LEAGUE_TABLE_SEQUENCE.nextval, newTeamRef, 0, 0, 0, 0, 0, 0
                     );                
                 ELSE
                     RAISE TEAM_ALREADY_EXSISTS;
@@ -144,11 +144,11 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
             END IF;          
         EXCEPTION
             WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
-            WHEN TEAM_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Druøyna o podanej nazwiej juø istnieje');
+            WHEN TEAM_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Druzyna o podanej nazwiej juz istnieje');
             
     END add_team;
     
-    --- WYPISYWANIE WSZYSTKICH ZAWODNIK”W DRUØYNY ---
+    --- WYPISYWANIE WSZYSTKICH ZAWODNIK”W DRUZYNY ---
     PROCEDURE print_team_players(teamId IN NUMBER) AS
         team t_team;
         counter INTEGER;
@@ -170,7 +170,7 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
                 RAISE WRONG_DATA;
             END IF;
             EXCEPTION
-                WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druøyna nie istnieje');
+                WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druzyna nie istnieje');
                 WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
         
     END print_team_players;
@@ -185,6 +185,8 @@ CREATE OR REPLACE PACKAGE player_utils AS
     PROCEDURE print_players;
     PROCEDURE add_team(playerId number, teamId number);
     PROCEDURE add_match_data(playerId number, scoredGoals number, minutesPlayed number, assistsNumber number, yellowCardsReceived number, redCardsReceived number);
+    PROCEDURE add_player_goals_history(playerId IN NUMBER, goalsN IN NUMBER, sezonD IN DATE);
+    PROCEDURE print_player_goals_history(playerId IN NUMBER);
     
 END player_utils;
 
@@ -216,7 +218,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
             END IF;
             EXCEPTION
                 WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
-                WHEN PLAYER_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Gracz o podanych danych juø istnieje' || playerFirstName || ' ' || playerLastName || ' ' || playerBirthDate);    
+                WHEN PLAYER_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Gracz o podanych danych juz istnieje' || playerFirstName || ' ' || playerLastName || ' ' || playerBirthDate);    
     END add_player;
     
     --- WYPISYWANIE WSZYSTKICH ZADOWNIK”W ---
@@ -226,11 +228,11 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
         FOR cursor1 IN (SELECT * FROM players) 
           LOOP
             SELECT DEREF(cursor1.team) INTO team from players p WHERE p.id = cursor1.id;
-            DBMS_OUTPUT.PUT_LINE('Imie = ' || cursor1.firstName || ', Nazwisko = ' || cursor1.lastName || ', Nazwa druøyny = ' || team.teamName);
+            DBMS_OUTPUT.PUT_LINE('Imie = ' || cursor1.firstName || ', Nazwisko = ' || cursor1.lastName || ', Nazwa druzyny = ' || team.teamName);
           END LOOP;
     END print_players;
     
-    --- DODAWANIE DRUØYNY DO GRACZA ---
+    --- DODAWANIE DRUZYNY DO GRACZA ---
     PROCEDURE add_team(playerId number, teamId number) AS
         teamRef REF t_team;
         teamCounter INTEGER;
@@ -244,7 +246,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
                     IF teamCounter > 0 THEN
                         SELECT REF(t) INTO teamRef FROM teams t WHERE t.id LIKE teamId;
                         UPDATE players p SET p.team = teamRef WHERE p.id = playerId;
-                        DBMS_OUTPUT.PUT_LINE('Przypisano druøynÍ do gracza');
+                        DBMS_OUTPUT.PUT_LINE('Przypisano druzyne do gracza');
                     ELSE
                         RAISE TEAM_NOT_FOUND;
                     END IF;
@@ -257,7 +259,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
             EXCEPTION
                 WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
                 WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany gracz nie istnieje');
-                WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druøyna nie istnieje');
+                WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druzyna nie istnieje');
     END add_team;
     
     --- DODAWANIE DANYCH MECZOWYCH DO GRACZA ---
@@ -286,6 +288,58 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
             WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany gracz nie istnieje');
     END add_match_data;
     
+    --- Dodawanie historii bramek do gracza
+    PROCEDURE add_player_goals_history(playerId IN NUMBER, goalsN IN NUMBER, sezonD IN DATE) AS
+        counter INTEGER;
+        i INTEGER;
+        k_goals_history k_player_goals_history;
+    BEGIN
+        IF playerId IS NOT NULL AND goalsN IS NOT NULL AND sezonD IS NOT NULL THEN
+            SELECT COUNT(*) INTO counter FROM players p WHERE p.id = playerId;
+            IF counter > 0 THEN
+                SELECT p.goals_history INTO k_goals_history FROM players p WHERE p.id = playerId;
+                IF k_goals_history IS NULL THEN
+                    k_goals_history := k_player_goals_history();
+                    k_goals_history.extend(1);
+                    i := k_goals_history.last();
+                    k_goals_history(i) := new t_player_goals_history(PLAYER_GOALS_HISTORY_SEQUENCE.nextval, goalsN, sezonD);
+                ELSE
+                    k_goals_history.extend(1);
+                    i := k_goals_history.last();
+                    k_goals_history(i) := new t_player_goals_history(PLAYER_GOALS_HISTORY_SEQUENCE.nextval, goalsN, sezonD); 
+                END IF;
+                UPDATE players p SET p.goals_history = k_goals_history WHERE p.id = playerId;
+                DBMS_OUTPUT.PUT_LINE('Dodano historie goli');
+            ELSE
+                RAISE PLAYER_NOT_FOUND;
+            END IF;
+        ELSE
+            RAISE WRONG_DATA;
+        END IF;
+        EXCEPTION
+            WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+            WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany gracz nie istnieje');
+    END add_player_goals_history;
+    
+    --- WYPISYWANIE HISTORII BRAMEK GRACZA
+    PROCEDURE print_player_goals_history(playerId IN NUMBER) AS
+        counter INTEGER;
+        k_goals_history k_player_goals_history;
+    BEGIN
+        SELECT COUNT(*) INTO counter FROM players p WHERE p.id = playerId;
+            IF counter > 0 THEN
+                SELECT p.goals_history INTO k_goals_history FROM players p WHERE p.id = playerId;
+                FOR cursor1 IN (SELECT * FROM table(k_goals_history)) 
+                LOOP
+                    DBMS_OUTPUT.PUT_LINE('Sezon = ' || cursor1.sezon || ', Bramki = ' || cursor1.goals);
+                 END LOOP;
+            ELSE
+                RAISE PLAYER_NOT_FOUND;
+            END IF;
+            EXCEPTION
+                WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+    END print_player_goals_history;
+        
 END player_utils;
 
 
@@ -345,8 +399,8 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
         END IF;
         EXCEPTION
             WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
-            WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Jedna badü obie druøyny nie istnieja');
-            WHEN MATCH_ALREADY_EXISTS THEN DBMS_OUTPUT.PUT_LINE('Taki mecz juø istnieje');
+            WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Jedna badz obie druzyny nie istnieja');
+            WHEN MATCH_ALREADY_EXISTS THEN DBMS_OUTPUT.PUT_LINE('Taki mecz juz istnieje');
     END add_match;
     
     PROCEDURE add_match_result(matchId IN NUMBER, winnerId IN NUMBER, newWinnerGoals IN NUMBER, newLosserGoals IN NUMBER) AS
@@ -380,7 +434,7 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
         END IF;
         EXCEPTION
             WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
-            WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druøyna nie istnieje');
+            WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druzyna nie istnieje');
             WHEN MATCH_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany mecz nie istnieje');
     END add_match_result;
     
