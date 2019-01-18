@@ -55,8 +55,8 @@ END;
 
 --- Tworzenie druzyn - b³êdne dane ---
 BEGIN
-    team_utils.add_team(null, 1907);
-    team_utils.add_team('Manchester City', null);
+    team_utils.add_team(null, 1907); -- Wprowadzono niepoprawne dane
+    team_utils.add_team('Manchester City', null); -- Wprowadzono niepoprawne dane
 END;
 
 --- Tworzenie zawodników ---
@@ -75,6 +75,12 @@ BEGIN
   player_utils.add_team(4,2);
 END;
 
+--- Przypisanie zawodników do druzyn - b³êdne dane ---
+BEGIN
+  player_utils.add_team(3431,1); -- Podany gracz nie istnieje
+  player_utils.add_team(1,null); -- Wprowadzono niepoprawne dane
+END;
+
 --- Wypisanie zawodników konkretnej dru¿yny --- 
 BEGIN
     team_utils.print_team_players(1);
@@ -88,8 +94,8 @@ END;
 
 --- Przypisanie zawodników do druzyn - b³êdne dane ---
 BEGIN
-  player_utils.add_team(134534,1);
-  player_utils.add_team(2,435351);
+  player_utils.add_team(134534,1); -- Podana dru¿yna nie istnieje
+  player_utils.add_team(2,435351); -- Wprowadzono niepoprawne dane
 END;
 
 --- Wypisanie graczy ---
@@ -106,8 +112,8 @@ END;
 
 --- Dodawanie historii bramek do zawodnika - b³êdne dane --- 
 BEGIN
-    player_utils.add_player_goals_history(234231, 17, '2015-01-01');
-    player_utils.add_player_goals_history(1, null, '2016-01-01');
+    player_utils.add_player_goals_history(234231, 17, '2015-01-01'); -- Podany gracz nie istnieje
+    player_utils.add_player_goals_history(1, null, '2016-01-01'); -- Wprowadzono niepoprawne dane
 END;
 
 --- Wypisanie historii bramek ---
@@ -117,8 +123,8 @@ END;
 
 --- Wypisanie historii bramek - b³êdne dane ---
 BEGIN
-    player_utils.print_player_goals_history(134434);
-    player_utils.print_player_goals_history(null);
+    player_utils.print_player_goals_history(134434); -- Podany gracz nie istnieje
+    player_utils.print_player_goals_history(null); -- Wprowadzono niepoprawne dane
 END;
 
 --- Dodawanie danych meczowych do gracza ---
@@ -129,8 +135,8 @@ END;
 
 --- Dodawanie danych meczowych do gracza - B£ÊDNE DANE ---
 BEGIN
-    player_utils.add_match_data(1, null, 87, 1, 1, 0);
-    player_utils.add_match_data(45541, 2, 87, 1, 1, 0);
+    player_utils.add_match_data(1, null, 87, 1, 1, 0); -- Wprowadzono niepoprawne dane
+    player_utils.add_match_data(45541, 2, 87, 1, 1, 0); -- Podany gracz nie istnieje
 END;
 
 --- Dodawanie nowego meczu ---
@@ -141,9 +147,9 @@ END;
 
 --- Dodawanie nowego meczu - b³êdne dane ---
 BEGIN
-    match_utils.add_match(144343, 2, '2019-01-19');
-    match_utils.add_match(1, 2, null);
-    match_utils.add_match(3, 1, '2019-01-19');
+    match_utils.add_match(144343, 2, '2019-01-19'); -- Jedna badz obie druzyny nie istnieja
+    match_utils.add_match(1, 2, null); -- Wprowadzono niepoprawne dane
+    match_utils.add_match(3, 1, '2019-01-19'); -- Jedna z podanych dru¿yn rozgrywa ju¿ mecz w tym terminie
 END;
 
 --- Dodawanie wyniku meczu ---
@@ -154,8 +160,8 @@ END;
 
 --- Dodawanie wyniku meczu - b³êdne dane ---
 BEGIN
-    match_utils.add_match_result(1324, 1, 3, 2);
-    match_utils.add_match_result(1324, 1, null, 2);
+    match_utils.add_match_result(1324, 1, 3, 2); -- Podany mecz nie istnieje
+    match_utils.add_match_result(1324, 1, null, 2); -- Wprowadzono niepoprawne dane
 END;
 
 --- WYPISANIE UPORZ¥DKOWANEJ TABELI ---
