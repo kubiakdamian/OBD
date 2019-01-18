@@ -1,9 +1,23 @@
+--- TRIGGER ---
+CREATE OR REPLACE TRIGGER trigger_league_data_updating AFTER UPDATE ON league_table
+DECLARE
+    teamT t_team;
+BEGIN
+    SELECT * INTO teamT
+        FROM (SELECT DEREF(l.team) FROM league_table l ORDER BY l.points DESC, l.scoredGoals DESC, l.wins DESC)
+    WHERE rownum = 1;
+    
+    DBMS_OUTPUT.PUT_LINE('Lider: ' || teamT.teamName);
+END;
+
 --- LEAGUE UTILS------------------------------------------------------------------------
 CREATE OR REPLACE PACKAGE league_utils AS
     
     PROCEDURE update_league_data(teamId IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER);
     PROCEDURE update_league_data_from_match(matchId IN NUMBER, winnerId NUMBER);
     PROCEDURE get_league_table;
+    PROCEDURE get_best_scorers;
+    PROCEDURE get_best_assistants;
     
 end league_utils;
 
@@ -35,7 +49,7 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
                         END LOOP;
                         IF teamFound = 1 THEN
                             UPDATE league_table t SET
-                                t.points = newWins * 3 + newDraws,
+                                t.points = t.points + newWins * 3 + newDraws,
                                 t.scoredGoals = t.scoredGoals + newScoredGoals,
                                 t.lostGoals = t.lostGoals + newLostGoals,
                                 t.wins = t.wins + newWins,
@@ -110,7 +124,32 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
                     pos := pos + 1;
                 END LOOP; 
         END get_league_table;
-
+        
+        PROCEDURE get_best_scorers AS
+            i INTEGER;
+        BEGIN
+            i := 0;
+            FOR cursor1 IN (SELECT * FROM players p ORDER BY p.goals DESC, p.minutesTotal ASC) 
+            LOOP
+                IF i < 10 THEN
+                    DBMS_OUTPUT.PUT_LINE(cursor1.firstName || ' ' || cursor1.lastName || ' ' || cursor1.goals);
+                    i := i + 1;
+                END IF;
+            END LOOP;
+        END get_best_scorers;
+        
+        PROCEDURE get_best_assistants AS
+            i INTEGER;
+        BEGIN
+            i := 0;
+            FOR cursor1 IN (SELECT * FROM players p ORDER BY p.assists DESC, p.minutesTotal ASC) 
+            LOOP
+                IF i < 10 THEN
+                    DBMS_OUTPUT.PUT_LINE(cursor1.firstName || ' ' || cursor1.lastName || ' ' || cursor1.assists);
+                    i := i + 1;
+                END IF;
+            END LOOP;
+        END get_best_assistants;
 END league_utils;
 
 
@@ -431,22 +470,28 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
     nMatch t_match;
     
     BEGIN
-        IF matchId IS NOT NULL AND winnerId IS NOT NULL AND newWinnerGoals IS NOT NULL AND newLosserGoals IS NOT NULL THEN
+        IF matchId IS NOT NULL AND newWinnerGoals IS NOT NULL AND newLosserGoals IS NOT NULL THEN
             SELECT COUNT(*) INTO matchCounter FROM matches m WHERE m.id = matchId;
             IF matchCounter = 1 THEN
-                SELECT COUNT(*) INTO teamCounter FROM teams t WHERE t.id = winnerId;
-                IF teamCounter = 1 THEN
-                    SELECT REF(t) INTO winnerTeamRef FROM teams t WHERE t.id LIKE winnerId;
+                IF winnerId IS NOT NULL THEN
+                    SELECT COUNT(*) INTO teamCounter FROM teams t WHERE t.id = winnerId;
+                    IF teamCounter = 1 THEN
+                        SELECT REF(t) INTO winnerTeamRef FROM teams t WHERE t.id LIKE winnerId;
+                        UPDATE matches m SET
+                            m.winner = winnerTeamRef,
+                            m.winnerGoals = newWinnerGoals,
+                            m.loserGoals = newLosserGoals WHERE m.id = matchId;
+                    ELSE
+                        RAISE TEAM_NOT_FOUND;
+                    END IF;
+                ELSE
                     UPDATE matches m SET
-                        m.winner = winnerTeamRef,
+                        m.winner = null,
                         m.winnerGoals = newWinnerGoals,
                         m.loserGoals = newLosserGoals WHERE m.id = matchId;
-                    
-                    --- Updating league table
-                    league_utils.update_league_data_from_match(matchId, winnerId);
-                ELSE
-                    RAISE TEAM_NOT_FOUND;
                 END IF;
+                    --- Aktualizowanie danych tabeli ligowej
+                    league_utils.update_league_data_from_match(matchId, winnerId);
             ELSE
                 RAISE MATCH_NOT_FOUND;
             END IF;

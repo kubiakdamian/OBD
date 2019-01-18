@@ -47,8 +47,10 @@ create sequence PLAYER_GOALS_HISTORY_SEQUENCE
 
 --- Tworzenie druzyn ---
 BEGIN
-    team_utils.add_team('Manchester United', 1907);
-    team_utils.add_team('Manchester City', 1907);
+    team_utils.add_team('Manchester United', 1878);
+    team_utils.add_team('Manchester City', 1880);
+    team_utils.add_team('Liverpool', 1892);
+    team_utils.add_team('Tottenham', 1882);
 END;
 
 --- Tworzenie druzyn - b³êdne dane ---
@@ -122,6 +124,7 @@ END;
 --- Dodawanie danych meczowych do gracza ---
 BEGIN
     player_utils.add_match_data(1, 2, 87, 1, 1, 0);
+    player_utils.add_match_data(2, 3, 90, 0, 0, 0);
 END;
 
 --- Dodawanie danych meczowych do gracza - B£ÊDNE DANE ---
@@ -133,6 +136,7 @@ END;
 --- Dodawanie nowego meczu ---
 BEGIN
     match_utils.add_match(1, 2, '2019-01-19');
+    match_utils.add_match(3, 4, '2019-01-19');
 END;
 
 --- Dodawanie nowego meczu - b³êdne dane ---
@@ -144,6 +148,7 @@ END;
 --- Dodawanie wyniku meczu ---
 BEGIN
     match_utils.add_match_result(1, 1, 3, 2);
+    match_utils.add_match_result(2, null, 1, 1);
 END;
 
 --- Dodawanie wyniku meczu - b³êdne dane ---
@@ -155,4 +160,14 @@ END;
 --- WYPISANIE UPORZ¥DKOWANEJ TABELI ---
 BEGIN
     league_utils.get_league_table;
+END;
+
+--- WYPISANIE KLASYFIKACJI STRZELCÓW ---
+BEGIN
+    league_utils.get_best_scorers;
+END;
+
+--- WYPISANIE KLASYFIKACJI ASYSTENTÓW ---
+BEGIN
+    league_utils.get_best_assistants;
 END;
