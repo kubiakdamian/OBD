@@ -151,3 +151,8 @@ BEGIN
     match_utils.add_match_result(1324, 1, 3, 2);
     match_utils.add_match_result(1324, 1, null, 2);
 END;
+
+--- WYPISANIE UPORZ¥DKOWANEJ TABELI ---
+BEGIN
+    league_utils.get_league_table;
+END;

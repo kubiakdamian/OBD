@@ -3,6 +3,7 @@ CREATE OR REPLACE PACKAGE league_utils AS
     
     PROCEDURE update_league_data(teamId IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER);
     PROCEDURE update_league_data_from_match(matchId IN NUMBER, winnerId NUMBER);
+    PROCEDURE get_league_table;
     
 end league_utils;
 
@@ -94,6 +95,21 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
                 EXCEPTION
                     WHEN MATCH_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona druzyna nie istnieje');
         END update_league_data_from_match;
+        
+        PROCEDURE get_league_table AS
+            teamT t_team;
+            pos INTEGER;
+        BEGIN
+            pos := 1;
+            FOR cursor1 IN (SELECT * FROM league_table ORDER BY points DESC, wins DESC, scoredgoals DESC) 
+                LOOP
+                    SELECT DEREF(cursor1.team) INTO teamT FROM league_table WHERE league_table.id = cursor1.id;
+                    DBMS_OUTPUT.PUT_LINE('Poz.' || pos || '  Dru¿yna: ' || teamT.teamName || '  Punkty: ' || cursor1.points || '  Zwyciêstwa: ' || cursor1.wins
+                    || '  Remisy: ' || cursor1.draws || '  Pora¿ki: ' || cursor1.losses || '  Bramki zdobyte ' || cursor1.scoredGoals
+                    || '  Bramki stracone: ' || cursor1.lostGoals);
+                    pos := pos + 1;
+                END LOOP; 
+        END get_league_table;
 
 END league_utils;
 
