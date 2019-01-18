@@ -437,6 +437,7 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
     MATCH_ALREADY_EXISTS EXCEPTION;
     MATCH_NOT_FOUND EXCEPTION;
     TEAM_ALREADY_PLAYING EXCEPTION;
+    DATA_ALREADY_ADDED EXCEPTION;
     counter INTEGER;
     hostRef REF t_team;
     guestRef REF t_team;
@@ -491,31 +492,36 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
     matchCounter INTEGER;
     teamCounter INTEGER;
     winnerTeamRef REF t_team;
-    nMatch t_match;
+    winnerGoalsN NUMBER;
     
     BEGIN
         IF matchId IS NOT NULL AND newWinnerGoals IS NOT NULL AND newLosserGoals IS NOT NULL THEN
             SELECT COUNT(*) INTO matchCounter FROM matches m WHERE m.id = matchId;
             IF matchCounter = 1 THEN
-                IF winnerId IS NOT NULL THEN
-                    SELECT COUNT(*) INTO teamCounter FROM teams t WHERE t.id = winnerId;
-                    IF teamCounter = 1 THEN
-                        SELECT REF(t) INTO winnerTeamRef FROM teams t WHERE t.id LIKE winnerId;
+                SELECT m.winnerGoals INTO winnerGoalsN FROM matches m WHERE m.id = matchId;
+                If winnerGoalsN IS NULL THEN
+                    IF winnerId IS NOT NULL THEN
+                        SELECT COUNT(*) INTO teamCounter FROM teams t WHERE t.id = winnerId;
+                        IF teamCounter = 1 THEN
+                            SELECT REF(t) INTO winnerTeamRef FROM teams t WHERE t.id LIKE winnerId;
+                            UPDATE matches m SET
+                                m.winner = winnerTeamRef,
+                                m.winnerGoals = newWinnerGoals,
+                                m.loserGoals = newLosserGoals WHERE m.id = matchId;
+                        ELSE
+                            RAISE TEAM_NOT_FOUND;
+                        END IF;
+                    ELSE
                         UPDATE matches m SET
-                            m.winner = winnerTeamRef,
+                            m.winner = null,
                             m.winnerGoals = newWinnerGoals,
                             m.loserGoals = newLosserGoals WHERE m.id = matchId;
-                    ELSE
-                        RAISE TEAM_NOT_FOUND;
                     END IF;
+                        --- Aktualizowanie danych tabeli ligowej
+                        league_utils.update_league_data_from_match(matchId, winnerId);
                 ELSE
-                    UPDATE matches m SET
-                        m.winner = null,
-                        m.winnerGoals = newWinnerGoals,
-                        m.loserGoals = newLosserGoals WHERE m.id = matchId;
+                    RAISE DATA_ALREADY_ADDED;
                 END IF;
-                    --- Aktualizowanie danych tabeli ligowej
-                    league_utils.update_league_data_from_match(matchId, winnerId);
             ELSE
                 RAISE MATCH_NOT_FOUND;
             END IF;
@@ -526,6 +532,7 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
             WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
             WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druzyna nie istnieje');
             WHEN MATCH_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany mecz nie istnieje');
+            WHEN DATA_ALREADY_ADDED THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono ju¿ dane dotycz¹ce tego meczu');
     END add_match_result;
     
 END match_utils;

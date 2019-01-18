@@ -55,6 +55,7 @@ END;
 
 --- Tworzenie druzyn - b³êdne dane ---
 BEGIN
+    team_utils.add_team('Tottenham', 1882); -- Druzyna o podanej nazwiej juz istnieje
     team_utils.add_team(null, 1907); -- Wprowadzono niepoprawne dane
     team_utils.add_team('Manchester City', null); -- Wprowadzono niepoprawne dane
 END;
@@ -67,6 +68,12 @@ BEGIN
     player_utils.add_player('Leroy', 'Sane', '1996-01-11');
 END;
 
+--- Tworzenie zawodników - B£ÊDNE DANE---
+BEGIN
+    player_utils.add_player('Paul', 'Pogba', '1993-03-15'); -- Gracz o podanych danych juz istniejePaul Pogba 93/03/15
+    player_utils.add_player(null, 'de Gea', '1990-11-07'); -- Wprowadzono niepoprawne dane
+END;
+
 --- Przypisanie zawodników do druzyn ---
 BEGIN
   player_utils.add_team(1,1);
@@ -77,8 +84,9 @@ END;
 
 --- Przypisanie zawodników do druzyn - b³êdne dane ---
 BEGIN
-  player_utils.add_team(3431,1); -- Podany gracz nie istnieje
-  player_utils.add_team(1,null); -- Wprowadzono niepoprawne dane
+  player_utils.add_team(3431, 1); -- Podany gracz nie istnieje
+  player_utils.add_team(1, null); -- Wprowadzono niepoprawne dane
+  player_utils.add_team(1, 23423); -- Podana dru¿yna nie istnieje
 END;
 
 --- Wypisanie zawodników konkretnej dru¿yny --- 
@@ -88,14 +96,15 @@ END;
 
 --- Wypisanie zawodników konkretnej dru¿yny - b³êdne dane --- 
 BEGIN
-    team_utils.print_team_players(133);
-    team_utils.print_team_players(null);
+    team_utils.print_team_players(133); -- Podana druzyna nie istnieje
+    team_utils.print_team_players(null); -- Wprowadzono niepoprawne dane
 END;
 
 --- Przypisanie zawodników do druzyn - b³êdne dane ---
 BEGIN
-  player_utils.add_team(134534,1); -- Podana dru¿yna nie istnieje
-  player_utils.add_team(2,435351); -- Wprowadzono niepoprawne dane
+  player_utils.add_team(134534, 1); -- Podany gracz nie istnieje
+  player_utils.add_team(2, 435351); -- Podana druzyna nie istnieje
+  player_utils.add_team(2, null); -- Wprowadzono niepoprawne dane
 END;
 
 --- Wypisanie graczy ---

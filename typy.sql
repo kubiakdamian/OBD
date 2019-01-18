@@ -101,5 +101,5 @@ create table teams of t_team
     id PRIMARY KEY
 )
 OBJECT id PRIMARY KEY;
-/
+
 
