@@ -143,6 +143,7 @@ END;
 BEGIN
     match_utils.add_match(144343, 2, '2019-01-19');
     match_utils.add_match(1, 2, null);
+    match_utils.add_match(3, 1, '2019-01-19');
 END;
 
 --- Dodawanie wyniku meczu ---

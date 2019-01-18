@@ -158,6 +158,7 @@ CREATE OR REPLACE PACKAGE team_utils AS
     
     PROCEDURE add_team(newTeamName IN VARCHAR2, establishmentYear IN NUMBER);
     PROCEDURE print_team_players(teamId IN NUMBER);
+    FUNCTION is_team_playing_in_date(teamId IN NUMBER, matchDateD IN DATE) RETURN NUMBER;
     
 END team_utils;
 
@@ -229,6 +230,23 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
                 WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
         
     END print_team_players;
+    
+    --- SPRAWDZANIE, CZY DRU¯YNA GRA JU¯ MECZ W PODANYM DNIU ---
+    FUNCTION is_team_playing_in_date(teamId IN NUMBER, matchDateD IN DATE) RETURN NUMBER AS is_playing NUMBER;
+        hostT t_team;
+        visitorT t_team;
+    BEGIN
+        is_playing := 0;
+        FOR cursor1 IN (SELECT * FROM matches m WHERE m.matchDay = matchDateD)
+        LOOP
+            SELECT DEREF(cursor1.matchhost) INTO hostT FROM matches m where m.id = cursor1.id;
+            SELECT DEREF(cursor1.matchhost) INTO visitorT FROM matches m where m.id = cursor1.id;
+            IF hostT.id = teamId OR visitorT.id = teamId THEN
+                is_playing := 1;
+            END IF;     
+        END LOOP;
+        RETURN is_playing;
+    END is_team_playing_in_date;
 
 end team_utils;
 
@@ -418,6 +436,7 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
     TEAM_NOT_FOUND EXCEPTION;
     MATCH_ALREADY_EXISTS EXCEPTION;
     MATCH_NOT_FOUND EXCEPTION;
+    TEAM_ALREADY_PLAYING EXCEPTION;
     counter INTEGER;
     hostRef REF t_team;
     guestRef REF t_team;
@@ -429,30 +448,34 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
         hostFound := 0;
         guestFound := 0;
         IF hostId IS NOT NULL AND guestId IS NOT NULL AND matchDate IS NOT NULL THEN
-            FOR cursor1 IN (SELECT * FROM teams)
-                LOOP
-                    IF cursor1.id = hostId THEN
-                        hostFound := 1;
-                    ELSIF cursor1.id = guestId THEN
-                        guestFound := 1;
+            IF team_utils.is_team_playing_in_date(hostId, matchDate) = 0 AND team_utils.is_team_playing_in_date(guestId, matchDate) = 0 THEN
+                FOR cursor1 IN (SELECT * FROM teams)
+                    LOOP
+                        IF cursor1.id = hostId THEN
+                            hostFound := 1;
+                        ELSIF cursor1.id = guestId THEN
+                            guestFound := 1;
+                        END IF;
+                    END LOOP;
+                IF hostFound = 1 AND guestFound = 1 THEN
+                    SELECT REF(t) INTO hostRef FROM teams t WHERE t.id LIKE hostId;
+                    SELECT REF(t) INTO guestRef FROM teams t WHERE t.id LIKE guestId;
+                    
+                    SELECT COUNT(*) INTO counter FROM matches m WHERE m.matchHost = hostRef AND m.visitor = guestRef AND m.matchDay = matchDate;
+                    IF counter = 0 THEN            
+                        INSERT INTO matches VALUES
+                        (
+                            MATCHES_SEQUENCE.nextval, hostRef, guestRef, matchDate, null, null, null
+                        );
+                        DBMS_OUTPUT.PUT_LINE('Dodano nowy mecz');
+                    ELSE
+                        RAISE MATCH_ALREADY_EXISTS;
                     END IF;
-                END LOOP;
-            IF hostFound = 1 AND guestFound = 1 THEN
-                SELECT REF(t) INTO hostRef FROM teams t WHERE t.id LIKE hostId;
-                SELECT REF(t) INTO guestRef FROM teams t WHERE t.id LIKE guestId;
-                
-                SELECT COUNT(*) INTO counter FROM matches m WHERE m.matchHost = hostRef AND m.visitor = guestRef AND m.matchDay = matchDate;
-                IF counter = 0 THEN            
-                    INSERT INTO matches VALUES
-                    (
-                        MATCHES_SEQUENCE.nextval, hostRef, guestRef, matchDate, null, null, null
-                    );
-                    DBMS_OUTPUT.PUT_LINE('Dodano nowy mecz');
                 ELSE
-                    RAISE MATCH_ALREADY_EXISTS;
+                    RAISE TEAM_NOT_FOUND;
                 END IF;
             ELSE
-                RAISE TEAM_NOT_FOUND;
+                RAISE TEAM_ALREADY_PLAYING;
             END IF;
         ELSE
             RAISE WRONG_DATA;
@@ -461,6 +484,7 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
             WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
             WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Jedna badz obie druzyny nie istnieja');
             WHEN MATCH_ALREADY_EXISTS THEN DBMS_OUTPUT.PUT_LINE('Taki mecz juz istnieje');
+            WHEN TEAM_ALREADY_PLAYING THEN DBMS_OUTPUT.PUT_LINE('Jedna z podanych dru¿yn rozgrywa ju¿ mecz w tym terminie');
     END add_match;
     
     PROCEDURE add_match_result(matchId IN NUMBER, winnerId IN NUMBER, newWinnerGoals IN NUMBER, newLosserGoals IN NUMBER) AS
