@@ -1,6 +1,6 @@
 ---- TYPY -----
 
--- Typ opisujacy tabele ligowa
+-- TYP OPISUJACY TABELÊ LIGOWA
 create or replace TYPE t_league AS OBJECT 
 (
     id number(10),
@@ -12,7 +12,7 @@ create or replace TYPE t_league AS OBJECT
     draws number,
     losses number
 )
---- Tabela ligowa
+--- TABELA LIGOWA
 create table league_table of t_league
 (
     id PRIMARY KEY,
@@ -21,7 +21,7 @@ create table league_table of t_league
 )
 OBJECT id PRIMARY KEY;
 
--- Typ opisujacy mecz
+-- TYP OPISUJACY MECZ
 create or replace TYPE t_match AS OBJECT 
 (
     id number(10),
@@ -32,7 +32,7 @@ create or replace TYPE t_match AS OBJECT
     winnerGoals number,
     loserGoals number
 )
---- Tabela meczów
+--- TABELA MECZÓW
 create table matches of t_match
 (
     id PRIMARY KEY,
@@ -45,7 +45,7 @@ create table matches of t_match
 )
 OBJECT id PRIMARY KEY;
 
---- Typ opisujacy historie bramek zdobytych przez zawodnika
+--- tYP OPISUJACY HISTORIÊ BRAMEK ZDOBYTYCH PRZEZ ZAWODNIKA
 CREATE OR REPLACE TYPE t_player_goals_history AS OBJECT
 (
     id NUMBER(10),
@@ -53,10 +53,10 @@ CREATE OR REPLACE TYPE t_player_goals_history AS OBJECT
     sezon DATE
 )
 
---- tablica zagni¿d¿ona historii bramek zdobytych w poszczególnych sezonach przez zawodnika
+--- tablica zagni¿d¿ona historii bramek zdobytych w poszczególnych sezonach przez zawodnika TABLICA ZAGNIE¯D¯ONA HISTORII BRAMEK ZDOBYTYCH W POSZCZEGÓLNYCH SEZONACH PRZEZ ZAWODNIKA
 CREATE TYPE k_player_goals_history AS TABLE OF t_player_goals_history;
 
--- Typ opisujacy zawodnika
+-- TYP OPISUJACY ZAWODNIKA
 create or replace TYPE t_player AS OBJECT 
 ( 
     id number(10),
@@ -72,7 +72,7 @@ create or replace TYPE t_player AS OBJECT
     goals_history k_player_goals_history
 )
 
---- Tabela zawodników
+--- TABELA ZAWODNIKÓW
 create table players of t_player
 (
     id PRIMARY KEY,
@@ -84,7 +84,7 @@ NESTED TABLE goals_history
 STORE AS player_goals_history;
 
 
---Typ opisujacy druzyne
+--TYP OPISUJACY DRU¯YNÊ
 create or replace TYPE t_team AS OBJECT 
 (
     id number,
@@ -95,7 +95,8 @@ create or replace TYPE t_team AS OBJECT
     losses number,
     points number
 )
---- Tabela dru¿yn
+
+--- TABELA DRU¯YN
 create table teams of t_team
 (
     id PRIMARY KEY

@@ -19,6 +19,8 @@ CREATE OR REPLACE PACKAGE league_utils AS
     PROCEDURE get_best_scorers;
     PROCEDURE get_best_assistants;
     
+    FUNCTION get_team_column_from_table(teamId IN NUMBER) RETURN NUMBER;
+    
 end league_utils;
 
 --- LEAGUE UTILS BODY ------------------------------------------------------------------
@@ -33,28 +35,19 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
     PROCEDURE update_league_data(teamId IN NUMBER, newScoredGoals IN NUMBER, newLostGoals IN NUMBER, newWins IN NUMBER, newDraws IN NUMBER, newLosses IN NUMBER) AS
         counter INTEGER;
         team t_team;
-        teamFound INTEGER;
-        tableId INTEGER;
+        columnId INTEGER;
         
             BEGIN
-                teamFound := 0;
                 IF teamId IS NOT NULL AND newScoredGoals IS NOT NULL AND newLostGoals IS NOT NULL AND newWins IS NOT NULL AND newDraws IS NOT NULL AND newLosses IS NOT NULL THEN
-                    FOR cursor1 IN (SELECT * FROM league_table)
-                        LOOP
-                            SELECT DEREF(cursor1.team) INTO team from league_table t WHERE t.id = cursor1.id;
-                            IF team.id = teamId THEN
-                                teamFound := 1;
-                                tableId := cursor1.id;
-                            END IF;
-                        END LOOP;
-                        IF teamFound = 1 THEN
+                        columnId := get_team_column_from_table(teamId);
+                        IF columnId != 0 THEN
                             UPDATE league_table t SET
                                 t.points = t.points + newWins * 3 + newDraws,
                                 t.scoredGoals = t.scoredGoals + newScoredGoals,
                                 t.lostGoals = t.lostGoals + newLostGoals,
                                 t.wins = t.wins + newWins,
                                 t.draws = t.draws + newDraws,
-                                t.losses = t.losses + newLosses WHERE t.id = tableId;
+                                t.losses = t.losses + newLosses WHERE t.id = columnId;
                                 DBMS_OUTPUT.PUT_LINE('Zaktualizowano dane meczowe');
                         ELSE
                             RAISE TEAM_NOT_FOUND;
@@ -150,6 +143,23 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
                 END IF;
             END LOOP;
         END get_best_assistants;
+        
+        FUNCTION get_team_column_from_table(teamId IN NUMBER) RETURN NUMBER AS columnId NUMBER;
+            team t_team;
+        BEGIN
+            columnId := 0;
+            FOR cursor1 IN (SELECT * FROM league_table)
+            LOOP
+                SELECT DEREF(cursor1.team) INTO team from league_table t WHERE t.id = cursor1.id;
+                IF team.id = teamId THEN
+                    columnId := cursor1.id;
+                END IF;
+            END LOOP;
+            
+            RETURN columnId;
+        end get_team_column_from_table;
+        
+        
 END league_utils;
 
 

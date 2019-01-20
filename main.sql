@@ -152,6 +152,7 @@ END;
 BEGIN
     match_utils.add_match(1, 2, '2019-01-19');
     match_utils.add_match(3, 4, '2019-01-19');
+    match_utils.add_match(1, 3, '2019-01-20');
 END;
 
 --- Dodawanie nowego meczu - b³êdne dane ---
@@ -171,6 +172,7 @@ END;
 BEGIN
     match_utils.add_match_result(1324, 1, 3, 2); -- Podany mecz nie istnieje
     match_utils.add_match_result(1324, 1, null, 2); -- Wprowadzono niepoprawne dane
+    match_utils.add_match_result(3, 13433, 3, 2); -- Podana dru¿yna nie istnieje
 END;
 
 --- WYPISANIE UPORZ¥DKOWANEJ TABELI ---
