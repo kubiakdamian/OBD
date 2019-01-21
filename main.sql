@@ -116,6 +116,7 @@ END;
 BEGIN
     player_utils.add_player_goals_history(1, 17, '2015-01-01');
     player_utils.add_player_goals_history(1, 17, '2016-01-01');
+    player_utils.add_player_goals_history(1, 17, '2017-01-01');
     player_utils.add_player_goals_history(2, 21, '2015-01-01');
 END;
 

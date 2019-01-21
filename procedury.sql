@@ -274,6 +274,7 @@ CREATE OR REPLACE PACKAGE player_utils AS
     
     FUNCTION does_player_exist(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE) RETURN NUMBER;
     FUNCTION does_player_exist_by_id(playerId IN NUMBER) RETURN NUMBER;
+    FUNCTION does_goals_history_exist(sezon IN DATE, playerId IN NUMBER) RETURN NUMBER;
     
 END player_utils;
 
@@ -284,6 +285,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     PLAYER_ALREADY_EXSISTS EXCEPTION;
     TEAM_NOT_FOUND EXCEPTION;
     PLAYER_NOT_FOUND EXCEPTION;
+    HISTORY_ALREADY_EXISTS EXCEPTION;
     
     --- DODAWANIE NOWEGO ZAWODNIKA ---
     PROCEDURE add_player(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE) AS     
@@ -378,6 +380,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     BEGIN
         IF playerId IS NOT NULL AND goalsN IS NOT NULL AND sezonD IS NOT NULL THEN
             IF does_player_exist_by_id(playerId) = 1 THEN
+            IF does_goals_history_exist(sezonD, playerId) = 0 THEN
                 SELECT p.goals_history INTO k_goals_history FROM players p WHERE p.id = playerId;
                 IF k_goals_history IS NULL THEN
                     k_goals_history := k_player_goals_history();
@@ -392,6 +395,9 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
                 UPDATE players p SET p.goals_history = k_goals_history WHERE p.id = playerId;
                 DBMS_OUTPUT.PUT_LINE('Dodano historie goli');
             ELSE
+                RAISE HISTORY_ALREADY_EXISTS;
+            END IF;
+            ELSE
                 RAISE PLAYER_NOT_FOUND;
             END IF;
         ELSE
@@ -400,6 +406,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
         EXCEPTION
             WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
             WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany gracz nie istnieje');
+            WHEN HISTORY_ALREADY_EXISTS THEN DBMS_OUTPUT.PUT_LINE('Historia tego sezonu ju¿ istnieje');
     END add_player_goals_history;
     
     --- WYPISYWANIE HISTORII BRAMEK GRACZA
@@ -447,6 +454,20 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
             RETURN 1;
         END IF;
     END does_player_exist_by_id;
+    
+    FUNCTION does_goals_history_exist(sezon IN DATE, playerId IN NUMBER) RETURN NUMBER AS history_exists NUMBER;
+        k_goals_history k_player_goals_history;
+    BEGIN
+        history_exists := 0;
+        SELECT p.goals_history INTO k_goals_history FROM players p WHERE p.id = playerId;
+        FOR cursor1 IN (SELECT * FROM table(k_goals_history)) 
+        LOOP
+            IF cursor1.sezon = sezon THEN
+                history_exists := 1;
+            END IF;
+        END LOOP;     
+        RETURN history_exists;
+    END does_goals_history_exist;
     
 END player_utils;
 
