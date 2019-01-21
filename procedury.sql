@@ -36,29 +36,29 @@ CREATE OR REPLACE PACKAGE BODY league_utils AS
         counter INTEGER;
         team t_team;
         columnId INTEGER;
-        
-            BEGIN
-                IF teamId IS NOT NULL AND newScoredGoals IS NOT NULL AND newLostGoals IS NOT NULL AND newWins IS NOT NULL AND newDraws IS NOT NULL AND newLosses IS NOT NULL THEN
-                        columnId := get_team_column_from_table(teamId);
-                        IF columnId != 0 THEN
-                            UPDATE league_table t SET
-                                t.points = t.points + newWins * 3 + newDraws,
-                                t.scoredGoals = t.scoredGoals + newScoredGoals,
-                                t.lostGoals = t.lostGoals + newLostGoals,
-                                t.wins = t.wins + newWins,
-                                t.draws = t.draws + newDraws,
-                                t.losses = t.losses + newLosses WHERE t.id = columnId;
-                                DBMS_OUTPUT.PUT_LINE('Zaktualizowano dane meczowe');
-                        ELSE
-                            RAISE TEAM_NOT_FOUND;
-                        END IF;
+    
+        BEGIN
+            IF teamId IS NOT NULL AND newScoredGoals IS NOT NULL AND newLostGoals IS NOT NULL AND newWins IS NOT NULL AND newDraws IS NOT NULL AND newLosses IS NOT NULL THEN
+                columnId := get_team_column_from_table(teamId);
+                IF columnId != 0 THEN
+                    UPDATE league_table t SET
+                        t.points = t.points + newWins * 3 + newDraws,
+                        t.scoredGoals = t.scoredGoals + newScoredGoals,
+                        t.lostGoals = t.lostGoals + newLostGoals,
+                        t.wins = t.wins + newWins,
+                        t.draws = t.draws + newDraws,
+                        t.losses = t.losses + newLosses WHERE t.id = columnId;
+                        DBMS_OUTPUT.PUT_LINE('Zaktualizowano dane meczowe');
                 ELSE
-                    RAISE WRONG_DATA;
+                    RAISE TEAM_NOT_FOUND;
                 END IF;
-                EXCEPTION
-                    WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
-                    WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona druzyna nie istnieje');
-            END update_league_data;
+            ELSE
+                RAISE WRONG_DATA;
+            END IF;
+            EXCEPTION
+                WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+                WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona druzyna nie istnieje');
+        END update_league_data;
             
         PROCEDURE update_league_data_from_match(matchId IN NUMBER, winnerId NUMBER) AS
                 nMatch t_match;
@@ -168,6 +168,7 @@ CREATE OR REPLACE PACKAGE team_utils AS
     
     PROCEDURE add_team(newTeamName IN VARCHAR2, establishmentYear IN NUMBER);
     PROCEDURE print_team_players(teamId IN NUMBER);
+    
     FUNCTION is_team_playing_in_date(teamId IN NUMBER, matchDateD IN DATE) RETURN NUMBER;
     
 END team_utils;
@@ -271,6 +272,9 @@ CREATE OR REPLACE PACKAGE player_utils AS
     PROCEDURE add_player_goals_history(playerId IN NUMBER, goalsN IN NUMBER, sezonD IN DATE);
     PROCEDURE print_player_goals_history(playerId IN NUMBER);
     
+    FUNCTION does_player_exist(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE) RETURN NUMBER;
+    FUNCTION does_player_exist_by_id(playerId IN NUMBER) RETURN NUMBER;
+    
 END player_utils;
 
 --- PLAYER UTILS BODY ------------------------------------------------------------------------
@@ -282,12 +286,10 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     PLAYER_NOT_FOUND EXCEPTION;
     
     --- DODAWANIE NOWEGO ZAWODNIKA ---
-    PROCEDURE add_player(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE) AS
-        counter INTEGER;      
+    PROCEDURE add_player(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE) AS     
         BEGIN
             IF playerFirstName IS NOT NULL AND playerLastName IS NOT NULL AND playerBirthDate IS NOT NULL THEN
-                SELECT COUNT(*) INTO counter FROM players p WHERE p.firstName = playerFirstName AND p.lastName = playerLastName AND p.birthDate = playerBirthDate;  
-                IF counter = 0 THEN
+                IF does_player_exist(playerFirstName, playerLastName, playerBirthDate) = 0 THEN
                     INSERT INTO players values
                     (
                         PLAYERS_SEQUENCE.nextval, null, playerFirstName, playerLastName, playerBirthDate, 0, 0, 0, 0, 0, null
@@ -301,7 +303,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
             END IF;
             EXCEPTION
                 WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
-                WHEN PLAYER_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Gracz o podanych danych juz istnieje' || playerFirstName || ' ' || playerLastName || ' ' || playerBirthDate);    
+                WHEN PLAYER_ALREADY_EXSISTS THEN DBMS_OUTPUT.PUT_LINE('Gracz o podanych danych juz istnieje: ' || playerFirstName || ' ' || playerLastName || ' ' || playerBirthDate);    
     END add_player;
     
     --- WYPISYWANIE WSZYSTKICH ZADOWNIKÓW ---
@@ -323,8 +325,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
         
         BEGIN
             IF playerId IS NOT NULL AND teamId IS NOT NULL THEN
-                SELECT COUNT(*) INTO playerCounter FROM players p WHERE p.id = playerId;
-                IF playerCounter > 0 THEN
+                IF does_player_exist_by_id(playerId) = 1 THEN
                     SELECT COUNT(*) INTO teamCounter FROM teams t WHERE t.id = teamId;
                     IF teamCounter > 0 THEN
                         SELECT REF(t) INTO teamRef FROM teams t WHERE t.id LIKE teamId;
@@ -351,8 +352,7 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     
     BEGIN
         IF playerId IS NOT NULL AND scoredGoals IS NOT NULL AND minutesPlayed IS NOT NULL AND assistsNumber IS NOT NULL AND yellowCardsReceived IS NOT NULL AND redCardsReceived IS NOT NULL THEN
-            SELECT COUNT(*) INTO counter FROM players p WHERE p.id = playerId;
-            IF counter > 0 THEN
+            IF does_player_exist_by_id(playerId) = 1 THEN
                 UPDATE players p SET
                     p.goals = p.goals + scoredGoals,
                     p.minutesTotal = p.minutesTotal + minutesPlayed,
@@ -373,13 +373,11 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     
     --- Dodawanie historii bramek do gracza
     PROCEDURE add_player_goals_history(playerId IN NUMBER, goalsN IN NUMBER, sezonD IN DATE) AS
-        counter INTEGER;
         i INTEGER;
         k_goals_history k_player_goals_history;
     BEGIN
         IF playerId IS NOT NULL AND goalsN IS NOT NULL AND sezonD IS NOT NULL THEN
-            SELECT COUNT(*) INTO counter FROM players p WHERE p.id = playerId;
-            IF counter > 0 THEN
+            IF does_player_exist_by_id(playerId) = 1 THEN
                 SELECT p.goals_history INTO k_goals_history FROM players p WHERE p.id = playerId;
                 IF k_goals_history IS NULL THEN
                     k_goals_history := k_player_goals_history();
@@ -406,12 +404,10 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     
     --- WYPISYWANIE HISTORII BRAMEK GRACZA
     PROCEDURE print_player_goals_history(playerId IN NUMBER) AS
-        counter INTEGER;
         k_goals_history k_player_goals_history;
     BEGIN
     IF playerId IS NOT NULL THEN
-        SELECT COUNT(*) INTO counter FROM players p WHERE p.id = playerId;
-            IF counter > 0 THEN
+            IF does_player_exist_by_id(playerId) > 0 THEN
                 SELECT p.goals_history INTO k_goals_history FROM players p WHERE p.id = playerId;
                 FOR cursor1 IN (SELECT * FROM table(k_goals_history)) 
                 LOOP
@@ -427,7 +423,31 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
                 WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany gracz nie istnieje');
                 WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
     END print_player_goals_history;
-        
+    
+    --- FUNKCJA SPRAWDZAJ¥CA, CZY GRACZ O PODANYCH IMIENIU, NAZWISKU ORAZ DACIE URODZENIA JU¯ ISTNIEJE ---
+    FUNCTION does_player_exist(playerFirstName IN VARCHAR2, playerLastName IN VARCHAR2, playerBirthDate IN DATE) RETURN NUMBER AS player_exist NUMBER;
+        counter INTEGER;
+    BEGIN
+        SELECT COUNT(*) INTO counter FROM players p WHERE p.firstName = playerFirstName AND p.lastName = playerLastName AND p.birthDate = playerBirthDate;
+        IF counter = 0 THEN
+            RETURN 0;
+        ELSE
+            RETURN 1;
+        END IF;
+    END does_player_exist;
+    
+    --- FUNKCJA SPRAWDZAJ¥CA, CZY GRACZ O PODANYM ID JU¯ ISTNIEJE ---
+    FUNCTION does_player_exist_by_id(playerId IN NUMBER) RETURN NUMBER AS player_exist NUMBER;
+        counter INTEGER;
+    BEGIN
+        SELECT COUNT(*) INTO counter FROM players p WHERE p.id = playerId;
+        IF counter = 0 THEN
+            RETURN 0;
+        ELSE
+            RETURN 1;
+        END IF;
+    END does_player_exist_by_id;
+    
 END player_utils;
 
 
