@@ -351,17 +351,57 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
     --- DODAWANIE DANYCH MECZOWYCH DO GRACZA ---
     PROCEDURE add_match_data(playerId number, scoredGoals number, minutesPlayed number, assistsNumber number, yellowCardsReceived number, redCardsReceived number) AS   
     counter INTEGER;
+    MORE_GOALS_THAN_TEAM EXCEPTION;
+    MORE_ASSISTS_THAN_TEAM EXCEPTION;
+    MORE_MINUTES_THAN_TEAM EXCEPTION;
+    playerGoals NUMBER;
+    playerAssists NUMBER;
+    playerMinutes NUMBER;
+    playerTeam t_team;
+    teamGoals NUMBER;
+    teamMinutes NUMBER;
+    teamT t_team;
+    
     
     BEGIN
         IF playerId IS NOT NULL AND scoredGoals IS NOT NULL AND minutesPlayed IS NOT NULL AND assistsNumber IS NOT NULL AND yellowCardsReceived IS NOT NULL AND redCardsReceived IS NOT NULL THEN
             IF does_player_exist_by_id(playerId) = 1 THEN
-                UPDATE players p SET
-                    p.goals = p.goals + scoredGoals,
-                    p.minutesTotal = p.minutesTotal + minutesPlayed,
-                    p.assists = p.assists + assistsNumber,
-                    p.yellowCards = p.yellowCards + yellowCardsReceived,
-                    p.redCards = p.redCards + redCardsReceived WHERE p.id = playerId;
-                DBMS_OUTPUT.PUT_LINE('Dodano dane dotyczace meczu do gracza');
+                FOR cursor1 IN (SELECT * FROM players)
+                LOOP
+                    IF cursor1.id = playerId THEN
+                        playerGoals := cursor1.goals;
+                        playerAssists := cursor1.assists;
+                        playerMinutes := cursor1.minutesTotal;
+                        SELECT DEREF(p.team) INTO playerTeam FROM players p WHERE p.id = playerId;
+                    END IF;
+                END LOOP;
+                IF playerTeam IS NOT NULL THEN
+                    FOR cursor1 IN (SELECT * FROM league_table) 
+                    LOOP
+                        SELECT DEREF(t.team) INTO teamT FROM league_table t WHERE t.id = cursor1.id;
+                        IF teamT.id = playerTeam.id THEN
+                            teamGoals := cursor1.scoredGoals;
+                            teamMinutes := cursor1.wins * 90 + cursor1.draws * 90 + cursor1.losses * 90;
+                        END IF;
+                    END LOOP;
+                    IF playerGoals + scoredGoals > teamGoals THEN
+                        RAISE MORE_GOALS_THAN_TEAM;
+                    ELSIF playerAssists + assistsNumber > teamGoals THEN
+                        RAISE MORE_ASSISTS_THAN_TEAM;
+                    ELSIF playerMinutes + minutesPlayed > teamMinutes THEN
+                        RAISE MORE_MINUTES_THAN_TEAM;
+                    ELSE
+                        UPDATE players p SET
+                            p.goals = p.goals + scoredGoals,
+                            p.minutesTotal = p.minutesTotal + minutesPlayed,
+                            p.assists = p.assists + assistsNumber,
+                            p.yellowCards = p.yellowCards + yellowCardsReceived,
+                            p.redCards = p.redCards + redCardsReceived WHERE p.id = playerId;
+                        DBMS_OUTPUT.PUT_LINE('Dodano dane dotyczace meczu do gracza');
+                    END IF;
+                ELSE
+                    RAISE TEAM_NOT_FOUND;
+                END IF;
             ELSE
                 RAISE PLAYER_NOT_FOUND;
             END IF;
@@ -371,6 +411,9 @@ CREATE OR REPLACE PACKAGE BODY player_utils AS
         EXCEPTION
             WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
             WHEN PLAYER_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podany gracz nie istnieje');
+            WHEN MORE_GOALS_THAN_TEAM THEN DBMS_OUTPUT.PUT_LINE('Gracz nie mo¿e posiadaæ wiêcej bramek ni¿ cala dru¿yna');
+            WHEN MORE_ASSISTS_THAN_TEAM THEN DBMS_OUTPUT.PUT_LINE('Gracz nie mo¿e posiadaæ wiêcej asyst ni¿ cala dru¿yna');
+            WHEN MORE_MINUTES_THAN_TEAM THEN DBMS_OUTPUT.PUT_LINE('Gracz nie mo¿e posiadaæ wiêcej rozegranych minut');
     END add_match_data;
     
     --- Dodawanie historii bramek do gracza
