@@ -115,8 +115,8 @@ END;
 --- Dodawanie historii bramek do zawodnika --- 
 BEGIN
     player_utils.add_player_goals_history(1, 17, '2015-01-01');
-    player_utils.add_player_goals_history(1, 17, '2016-01-01');
-    player_utils.add_player_goals_history(1, 17, '2017-01-01');
+    player_utils.add_player_goals_history(1, 19, '2016-01-01');
+    player_utils.add_player_goals_history(1, 32, '2017-01-01');
     player_utils.add_player_goals_history(2, 21, '2015-01-01');
 END;
 
@@ -167,6 +167,7 @@ END;
 BEGIN
     match_utils.add_match_result(1, 1, 3, 2);
     match_utils.add_match_result(2, null, 1, 1);
+    match_utils.add_match_result(3, 1, 4, 1);
 END;
 
 --- Dodawanie wyniku meczu - b³êdne dane ---

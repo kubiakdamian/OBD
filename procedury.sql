@@ -168,6 +168,8 @@ CREATE OR REPLACE PACKAGE team_utils AS
     
     PROCEDURE add_team(newTeamName IN VARCHAR2, establishmentYear IN NUMBER);
     PROCEDURE print_team_players(teamId IN NUMBER);
+    PROCEDURE update_teams_data_from_match(matchId IN NUMBER, winnerId IN NUMBER);
+    PROCEDURE update_team_data(teamId IN NUMBER, winsN IN NUMBER, lossesN IN NUMBER, drawsN IN NUMBER);
     
     FUNCTION is_team_playing_in_date(teamId IN NUMBER, matchDateD IN DATE) RETURN NUMBER;
     
@@ -242,6 +244,72 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
         
     END print_team_players;
     
+    --- AKTUALIZOWANIE DANYCH DRU¯YN PO WPROWADZENIU WYNIKU MECZU ---
+    PROCEDURE update_teams_data_from_match(matchId IN NUMBER, winnerId IN NUMBER) AS
+        nMatch t_match;
+        hostT t_team;
+        visitorT t_team;
+        matchCounter INTEGER;
+        MATCH_NOT_FOUND EXCEPTION;
+                
+    BEGIN
+        SELECT COUNT(*) INTO matchCounter FROM matches m WHERE m.id = matchId;
+        IF matchCounter = 1 THEN
+            FOR cursor1 IN (SELECT * FROM matches) 
+                LOOP
+                    IF cursor1.ID = matchId THEN   
+                        SELECT DEREF(cursor1.matchHost) INTO hostT from matches m WHERE m.id = cursor1.ID;
+                        SELECT DEREF(cursor1.visitor) INTO visitorT from matches m WHERE m.id = cursor1.ID;
+                    END IF;
+                END LOOP;
+            
+            IF winnerId IS null THEN
+                update_team_data(hostT.id, 0, 0, 1);
+                update_team_data(visitorT.id, 0, 0, 1);
+                DBMS_OUTPUT.PUT_LINE('Zaktualizowano dane dru¿yny');
+            ELSE
+                IF winnerId = hostT.id THEN
+                    update_team_data(hostT.id, 1, 0, 0);
+                    update_team_data(visitorT.id, 0, 1, 0);
+                    DBMS_OUTPUT.PUT_LINE('Zaktualizowano dane dru¿yny');
+                ELSE
+                    update_team_data(visitorT.id, 1, 0, 0);
+                    update_team_data(hostT.id, 0, 1, 0);
+                    DBMS_OUTPUT.PUT_LINE('Zaktualizowano dane dru¿yny');
+                END IF;               
+            END IF;
+        ELSE
+            RAISE MATCH_NOT_FOUND;
+        END IF;
+        EXCEPTION
+            WHEN MATCH_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Wprowadzona druzyna nie istnieje');
+    END update_teams_data_from_match;
+        
+        
+    --- AKTUALIZOWANIE DANYCH DRU¯YNY ---
+    PROCEDURE update_team_data(teamId IN NUMBER, winsN IN NUMBER, lossesN IN NUMBER, drawsN IN NUMBER) AS
+        counter INTEGER;
+    BEGIN
+        IF teamId IS NOT NULL THEN
+            SELECT COUNT(*) INTO counter FROM teams t WHERE t.id = teamId;
+            IF counter > 0 THEN
+                UPDATE teams t SET
+                    t.wins = t.wins + winsN,
+                    t.draws = t.draws + drawsN,
+                    t.losses = t.losses + lossesN,
+                    t.points = t.points + winsN * 3 + drawsN WHERE t.id = teamId;
+            ELSE
+                RAISE TEAM_NOT_FOUND;
+            END IF;
+        ELSE
+            RAISE WRONG_DATA;
+        END IF;
+        EXCEPTION
+            WHEN TEAM_NOT_FOUND THEN DBMS_OUTPUT.PUT_LINE('Podana druzyna nie istnieje');
+            WHEN WRONG_DATA THEN DBMS_OUTPUT.PUT_LINE('Wprowadzono niepoprawne dane');
+       
+       END update_team_data; 
+    
     --- SPRAWDZANIE, CZY DRU¯YNA GRA JU¯ MECZ W PODANYM DNIU ---
     FUNCTION is_team_playing_in_date(teamId IN NUMBER, matchDateD IN DATE) RETURN NUMBER AS is_playing NUMBER;
         hostT t_team;
@@ -257,7 +325,7 @@ CREATE OR REPLACE PACKAGE BODY team_utils AS
             END IF;     
         END LOOP;
         RETURN is_playing;
-    END is_team_playing_in_date;
+    END is_team_playing_in_date;    
 
 end team_utils;
 
@@ -613,6 +681,7 @@ CREATE OR REPLACE PACKAGE BODY match_utils AS
                     END IF;
                         --- Aktualizowanie danych tabeli ligowej
                         league_utils.update_league_data_from_match(matchId, winnerId);
+                        team_utils.update_teams_data_from_match(matchId, winnerId);
                 ELSE
                     RAISE DATA_ALREADY_ADDED;
                 END IF;
